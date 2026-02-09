@@ -1,0 +1,12 @@
+.ipynb_checkpoints
+
+.DS_Store
+
+.idea
+
+*sbi-logs/
+
+data/*
+!data/turin_obs.npy
+
+objects/*

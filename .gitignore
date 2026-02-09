@@ -1,0 +1,23 @@
+# Python temporary files and byte-code
+**/__pycache__/
+*.pyc
+
+# Virtual environment folders
+.venv/
+venv/
+
+# macOS system files
+.DS_Store
+
+# IDE and editor configuration folders
+.idea/
+.vscode/
+
+# Log and output directories, now with the correct path
+sbi-logs/
+outputs/
+
+
+
+# Jupyter Notebook checkpoints
+**/.ipynb_checkpoints/
