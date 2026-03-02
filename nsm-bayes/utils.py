@@ -1,12 +1,5 @@
 import torch
 import numpy as np
-import scipy.spatial.distance as distance
-import matplotlib.pyplot as plt
-from typing import List, Optional
-import seaborn as sns
-from scipy.stats import norm, multivariate_normal
-from matplotlib.lines import Line2D
-from matplotlib.patches import Patch
 from torch.distributions import MultivariateNormal, Binomial, StudentT
 
 
@@ -50,7 +43,6 @@ def run_mcmc(
                       [num_chains * num_pos_samples, d_theta].
     """
 
-    # 1. Build the posterior object from the inference object
     posterior = inference.build_posterior(
         sample_with="mcmc",
         mcmc_method=mcmc_method
@@ -84,23 +76,20 @@ def add_outliers_by_proportion(data, epsilon, outlier_values):
             - modified_data (torch.Tensor): A new tensor with outliers.
             - outlier_indices (torch.Tensor): A tensor of the indices that were replaced.
     """
-    # Ensure we don't modify the original data tensor in place
     modified_data = data.clone()
     
     n_obs, d_x = data.shape
     
-    # 1. Calculate the number of outliers to add
+    # Calculate the number of outliers to add
     num_outliers = int(np.floor(epsilon * n_obs))
     
     if num_outliers == 0:
         print("Warning: Epsilon is too small to add any outliers for this dataset size.")
         return modified_data, torch.tensor([])
         
-    # 2. Choose `num_outliers` unique random indices to replace
     all_indices = torch.randperm(n_obs)
     outlier_indices = all_indices[:num_outliers]
     
-    # 3. For each chosen index, assign a random outlier value
     for idx in outlier_indices:
         # Randomly choose one of the provided outlier values
         random_outlier_value = np.random.choice(outlier_values)
@@ -115,7 +104,7 @@ def add_outliers_by_proportion(data, epsilon, outlier_values):
     return modified_data, outlier_indices
 
 def simulate_contaminated_dataset(
-    theta_true: torch.Tensor,          # (d_theta,)
+    theta_true: torch.Tensor,          
     n_obs: int,
     simulate_fn,
     T: int,
@@ -147,27 +136,25 @@ def simulate_contaminated_dataset(
 
 def compute_mmd_lengthscale(y: torch.Tensor) -> torch.Tensor:
     """
-    Computes the MMD kernel lengthscale using the median heuristic in PyTorch.
+    Computes the MMD kernel lengthscale using the median heuristic.
     """
-    # Ensure tensor is 2D for pdist
     if y.dim() == 1:
         y = y.unsqueeze(-1)
         
-    sq_dists = torch.pdist(y) ** 2 # torch.pdist returns Euclidean, so we square it
+    sq_dists = torch.pdist(y) ** 2 
     median_sq_dist = torch.median(sq_dists)
     
     return torch.sqrt(median_sq_dist / 2.0)
 
 def kernel_matrix(x: torch.Tensor, y: torch.Tensor, l: torch.Tensor) -> torch.Tensor:
-    """Computes the Gaussian RBF kernel matrix in PyTorch."""
+    """Computes the Gaussian RBF kernel matrix."""
     sq_dists = torch.cdist(x, y, p=2)**2
     return torch.exp(-sq_dists / (2 * l**2))
 
 def compute_mmd(x: torch.Tensor, y: torch.Tensor, lengthscale: torch.Tensor) -> float:
     """
-    Approximates the squared MMD using your preferred biased V-statistic in PyTorch.
+    Computes the V-statistic estimator of the squared MMD.
     """
-    # Ensure tensors are at least 2D
     if x.dim() == 1: x = x.unsqueeze(-1)
     if y.dim() == 1: y = y.unsqueeze(-1)
     
@@ -177,7 +164,6 @@ def compute_mmd(x: torch.Tensor, y: torch.Tensor, lengthscale: torch.Tensor) -> 
     K_yy = kernel_matrix(y, y, lengthscale)
     K_xy = kernel_matrix(x, y, lengthscale)
 
-    # Your preferred biased (minimum variance) MMD^2 formula
     mmd_sq = (1 / (m * m)) * K_xx.sum() + (1 / (n * n)) * K_yy.sum() - (2 / (m * n)) * K_xy.sum()
     
     return mmd_sq.item()
@@ -252,8 +238,6 @@ def compute_inverse_covariance(x, regularize_eps: float = 1e-6) -> torch.Tensor:
     # 2. Check for sufficient samples
     n_samples, n_features = x.shape
     if n_samples < 2:
-        # Covariance is not well-defined with fewer than 2 samples.
-        # Returning the identity matrix is a safe default.
         return torch.eye(n_features, device=x.device, dtype=x.dtype)
 
     # 3. Compute the covariance matrix
@@ -366,7 +350,6 @@ def add_student_t_noise(
     n_obs, d = x_obs.shape
     device, dtype = x_obs.device, x_obs.dtype
 
-    # Copy to avoid in-place modification
     x_noisy = x_obs.clone()
 
     # Number of samples to corrupt
